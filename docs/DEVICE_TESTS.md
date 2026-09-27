@@ -1,6 +1,13 @@
 # Physical-device acceptance checks
 
-## Version 1.2 priority checks
+## Current v1.4 build 9 checks
+
+- Install over v1.4 build 8 without uninstalling. Confirm EQ/volume preferences survive and calibration controls are absent.
+- Tap Start microphone with a connected speaker. Playback starts after permission and route checks, without a test sound or calibration dialog.
+- Test the settings gear, Back navigation, creator footer/modal, Start/Stop, hold-to-talk, call resume and notifications using the general checks below.
+- Speaker feedback and Bluetooth delay remain possible. Check speech at low volume before any longer session.
+
+## Historical version 1.2 checks (not applicable to current v1.4)
 
 1. Update to v1.2 on the Redmi Note 13 5G / Android 15 with the boAt Aavante Bar 480. Start at low physical/media volume with the speaker in the intended position.
 2. Leave Cancel speaker echo and Feedback protection enabled, tap Go live and confirm calibration. Remain quiet for the probe and verify mic monitoring does not start until successful calibration. Note the measured delay displayed in the app.

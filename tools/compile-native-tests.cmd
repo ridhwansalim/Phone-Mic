@@ -7,7 +7,7 @@ call "%VS%\VC\Auxiliary\Build\vcvars64.bat" >nul
 if errorlevel 1 exit /b 1
 if not exist "%PROJECT%\.tooling\native-tests" mkdir "%PROJECT%\.tooling\native-tests"
 pushd "%PROJECT%\.tooling\native-tests"
-set "SRC=%PROJECT%\app\src\main\cpp"
+set "SRC=%PROJECT%\experiments\speaker-echo\cpp"
 cl /nologo /LD /O2 /DHAVE_CONFIG_H /D_CRT_SECURE_NO_WARNINGS /I"%JAVA_HOME%\include" /I"%JAVA_HOME%\include\win32" /I"%SRC%" /I"%SRC%\speexdsp\include" /I"%SRC%\speexdsp\libspeexdsp" "%SRC%\echo_jni.c" "%SRC%\speexdsp\libspeexdsp\mdf.c" "%SRC%\speexdsp\libspeexdsp\preprocess.c" "%SRC%\speexdsp\libspeexdsp\fftwrap.c" "%SRC%\speexdsp\libspeexdsp\filterbank.c" "%SRC%\speexdsp\libspeexdsp\kiss_fft.c" "%SRC%\speexdsp\libspeexdsp\kiss_fftr.c" /Fe:phonemic_echo.dll
 set "RESULT=%ERRORLEVEL%"
 popd

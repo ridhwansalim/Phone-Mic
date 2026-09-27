@@ -16,14 +16,14 @@ import android.widget.*;
 import java.util.*;
 
 public final class MainActivity extends Activity {
-    private final int bg=Color.rgb(12,18,24), card=Color.rgb(23,33,43), accent=Color.rgb(101,225,184), muted=Color.rgb(157,175,190);
+    private final int bg=Color.rgb(10,14,21), card=Color.rgb(19,27,38), accent=Color.rgb(113,230,193), muted=Color.rgb(151,166,185);
     private final Handler handler=new Handler(Looper.getMainLooper());
     private AudioManager audio;
     private LinearLayout content;
     private LinearLayout homePage, settingsPage;
     private ScrollView pageScroll;
     private boolean showingSettings;
-    private TextView state, deviceNote, protectionNote;
+    private TextView state, deviceNote, protectionNote, modeNote;
     private Spinner devices;
     private Button start, talk;
     private ProgressBar meter;
@@ -33,8 +33,6 @@ public final class MainActivity extends Activity {
     private int delay=220;
     private boolean protection=true, holdToTalk=false, resumeAfterInterruption=true;
     private CheckBox protectionSwitch;
-    private CheckBox speakerSwitch;
-    private boolean speakerCancellation=true;
     private final List<SeekBar> sliders=new ArrayList<>();
     private final AudioDeviceCallback callback=new AudioDeviceCallback() {
         @Override public void onAudioDevicesAdded(AudioDeviceInfo[] d) {refreshDevices();}
@@ -42,15 +40,15 @@ public final class MainActivity extends Activity {
     };
     private final Runnable update=new Runnable() {
         @Override public void run() {
-            state.setText(MicService.status);
-            start.setText(MicService.running ? (MicService.calibrating?"■   Stop calibration":"■   Stop microphone") : "●   Go live");
-            speakerSwitch.setEnabled(!MicService.running);
+            state.setText(MicService.running && !MicService.paused ? "Microphone is live" : MicService.status);
+            modeNote.setText(MicService.running ? "Connected · built-in microphone" : "Built-in microphone → Bluetooth speaker");
+            start.setText(MicService.running ? "Stop microphone" : "Start microphone");
             devices.setEnabled(!MicService.running);
             meter.setProgress(Math.round(MicService.level*100));
             talk.setVisibility(holdToTalk?View.VISIBLE:View.GONE);
-            talk.setEnabled(MicService.running && !MicService.paused && !MicService.calibrating);
+            talk.setEnabled(MicService.running && !MicService.paused);
             talk.setText(MicService.talkPressed?"Speaking · release to mute":"Hold to talk");
-            protectionNote.setText(MicService.calibrating?MicService.echoCancellation:!protection?"Feedback protection is off\n"+MicService.echoCancellation:MicService.feedbackReduced?
+            protectionNote.setText(!protection?"Feedback protection is off\n"+MicService.echoCancellation:MicService.feedbackReduced?
                 "Feedback tone detected · output reduced. Lower speaker volume before restarting to reset protection.":
                 "Feedback protection on · rumble filter, noise gate and automatic tone reduction.\n"+MicService.echoCancellation);
             handler.postDelayed(this,120);
@@ -63,7 +61,7 @@ public final class MainActivity extends Activity {
         load();
         getWindow().setStatusBarColor(bg); getWindow().setNavigationBarColor(bg);
         ScrollView scroll=new ScrollView(this); scroll.setFillViewport(true); scroll.setBackgroundColor(bg);
-        content=new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL); content.setPadding(dp(24),dp(24),dp(24),dp(32));
+        content=new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL); content.setPadding(dp(20),dp(12),dp(20),dp(16));
         scroll.addView(content); setContentView(scroll);
         pageScroll=scroll;
         scroll.setOnApplyWindowInsetsListener((v,insets)-> {
@@ -72,72 +70,65 @@ public final class MainActivity extends Activity {
             return insets;
         });
         LinearLayout root=content;
-        homePage=new LinearLayout(this);homePage.setOrientation(LinearLayout.VERTICAL);root.addView(homePage);
-        settingsPage=new LinearLayout(this);settingsPage.setOrientation(LinearLayout.VERTICAL);root.addView(settingsPage);settingsPage.setVisibility(View.GONE);
+        homePage=new LinearLayout(this);homePage.setOrientation(LinearLayout.VERTICAL);root.addView(homePage,new LinearLayout.LayoutParams(-1,0,1));
+        settingsPage=new LinearLayout(this);settingsPage.setOrientation(LinearLayout.VERTICAL);root.addView(settingsPage,new LinearLayout.LayoutParams(-1,-2));settingsPage.setVisibility(View.GONE);
         content=homePage;
-        button(content,"Settings",v->showPage(true));
-        label(content,"PHONE MIC  /  LIVE AUDIO",12,accent,true);
-        label(content,"Your voice.\nA little louder.",34,Color.WHITE,true);
-        label(content,"Turn your phone into a microphone for your Bluetooth speaker.",15,muted,false);
-
-        LinearLayout live=section("MICROPHONE");
-        state=label(live,MicService.status,18,Color.WHITE,true);
-        content=settingsPage;
-        button(content,"← Back to microphone",v->showPage(false));
-        label(content,"Settings",30,Color.WHITE,true);
-        label(content,"Make it sound like you. Changes save automatically.",14,muted,false);
-        button(content,"Stop microphone",v->{if(MicService.running)startService(new Intent(this,MicService.class).setAction("STOP"));showPage(false);});
-        LinearLayout controls=section("MICROPHONE & PLAYBACK");
-        speakerSwitch=check(controls,"Cancel speaker echo · calibrate before going live",speakerCancellation);
-        speakerSwitch.setOnCheckedChangeListener((b,checked)->{speakerCancellation=checked;getPreferences(0).edit().putBoolean("speakerCancellation",checked).apply();});
-        label(controls,"Plays a soft test sound for about 8–12 seconds. Keep quiet and keep the phone and speaker still. Recalibrate after moving them or changing speaker volume. Cancels this app’s playback, not other music.",12,muted,false);
-        meter=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal); meter.setMax(100); meter.setProgressTintList(ColorStateList.valueOf(accent));
-        LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,dp(8)); mp.setMargins(0,dp(14),0,dp(16)); live.addView(meter,mp);
-        start=button(live,"●   Go live",v->toggle()); start.setBackgroundTintList(ColorStateList.valueOf(accent)); start.setTextColor(bg);
-        talk=new TalkButton(this);talk.setText(R.string.hold_to_talk);talk.setAllCaps(false);talk.setTextSize(15);
-        live.addView(talk,new LinearLayout.LayoutParams(-1,dp(54)));
+        toolbar(false);
+        label(content,"YOUR VOICE, AMPLIFIED",11,accent,true);
+        LinearLayout live=section("LIVE MICROPHONE");
+        ImageView microphone=new ImageView(this);microphone.setImageResource(R.drawable.ic_mic);microphone.setImageTintList(ColorStateList.valueOf(accent));
+        microphone.setPadding(dp(14),dp(14),dp(14),dp(14));microphone.setBackground(surface(Color.rgb(24,49,47),32));
+        LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(64),dp(64));iconParams.gravity=Gravity.CENTER_HORIZONTAL;iconParams.setMargins(0,dp(8),0,dp(6));live.addView(microphone,iconParams);
+        state=label(live,"Ready when you are",23,Color.WHITE,true);state.setGravity(Gravity.CENTER);
+        modeNote=label(live,"Built-in microphone → Bluetooth speaker",12,muted,false);modeNote.setGravity(Gravity.CENTER);
+        meter=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);meter.setMax(100);meter.setProgressTintList(ColorStateList.valueOf(accent));
+        LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,dp(4));mp.setMargins(0,dp(12),0,dp(12));live.addView(meter,mp);
+        start=button(live,"Start microphone",v->toggle());start.setBackground(surface(accent,16));start.setTextColor(bg);
+        talk=new TalkButton(this);talk.setText(R.string.hold_to_talk);talk.setAllCaps(false);talk.setTextSize(15);talk.setTextColor(accent);talk.setBackground(surface(Color.rgb(24,49,47),16));
+        live.addView(talk,new LinearLayout.LayoutParams(-1,dp(56)));
         talk.setContentDescription("Hold to talk. With accessibility controls, activate to toggle speaking, activate again to mute.");
-        CheckBox holdSwitch=check(controls,"Hold to talk for a nearby speaker",holdToTalk);
+
+        LinearLayout output=section("OUTPUT");
+        LinearLayout routeRow=new LinearLayout(this);routeRow.setGravity(Gravity.CENTER_VERTICAL);output.addView(routeRow);
+        devices=new Spinner(this);routeRow.addView(devices,new LinearLayout.LayoutParams(0,dp(48),1));
+        TextView pair=label(routeRow,"Pair ↗",13,accent,true);pair.setGravity(Gravity.CENTER);pair.setMinWidth(dp(64));pair.setMinHeight(dp(48));pair.setContentDescription("Pair a speaker in Bluetooth settings");pair.setBackground(selectableBackground());pair.setFocusable(true);pair.setOnClickListener(v->startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)));
+        deviceNote=label(output,"",12,muted,false);
+        slider(output,"Output volume",100,Math.round(volume*100),"%",p->{volume=p/100f;publish();});
+        label(content,"For a cleaner sound, start at low speaker volume.",12,muted,false).setGravity(Gravity.CENTER);
+        View spacer=new View(this);homePage.addView(spacer,new LinearLayout.LayoutParams(1,0,1));
+        TextView creatorLink=label(homePage,"Created by "+getString(R.string.creator_name)+"  ↗",13,muted,false);
+        creatorLink.setGravity(Gravity.CENTER);creatorLink.setMinHeight(dp(48));creatorLink.setOnClickListener(v->showCreator());creatorLink.setContentDescription("Created by Ridhwan S. Open creator profile");
+        creatorLink.setFocusable(true);creatorLink.setBackground(selectableBackground());
+
+        content=settingsPage;
+        toolbar(true);
+        label(content,"Fine-tune your microphone. Changes save automatically.",13,muted,false);
+        LinearLayout controls=section("MICROPHONE & PLAYBACK");
+        CheckBox holdSwitch=check(controls,"Hold to talk",holdToTalk);
         holdSwitch.setOnCheckedChangeListener((b,checked)->{holdToTalk=checked;MicService.talkPressed=false;publish();});
-        label(controls,"Hold-to-talk mutes when released or when the app leaves the screen. Bluetooth may still play sound already buffered.",12,muted,false);
+        label(controls,"Mute on release or when you leave the app. Useful with a nearby speaker.",12,muted,false);
         protectionSwitch=check(controls,"Feedback protection",protection);
         protectionSwitch.setOnCheckedChangeListener((b,checked)->{protection=checked;publish();});
         protectionNote=label(controls,"",12,muted,false);
-        CheckBox resumeSwitch=check(controls,"Resume after calls / temporary interruptions",resumeAfterInterruption);
+        CheckBox resumeSwitch=check(controls,"Resume after interruptions",resumeAfterInterruption);
         resumeSwitch.setOnCheckedChangeListener((b,checked)->{resumeAfterInterruption=checked;publish();});
-        label(controls,"When enabled, the mic becomes live again when Android returns audio focus. Stop always cancels automatic resume.",12,muted,false);
-        button(controls,"Show notification controls",v->showNotificationControls());
-        label(live,"Speak close to the phone. Point the speaker away from it and start at low speaker volume. Protection reduces risk; it cannot guarantee feedback-free Bluetooth audio.",12,muted,false);
-
-        content=homePage;
-        LinearLayout output=section("BLUETOOTH OUTPUT");
-        devices=new Spinner(this); output.addView(devices,new LinearLayout.LayoutParams(-1,dp(52)));
-        deviceNote=label(output,"",13,muted,false);
-        button(output,"Connect a speaker  ↗",v->startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS)));
+        label(controls,"Resumes when Android returns audio focus. Stop cancels automatic resume.",12,muted,false);
+        button(controls,"Notification controls",v->showNotificationControls());
         button(controls,"Refresh Bluetooth devices",v->refreshDevices());
-        slider(output,"Output volume",100,Math.round(volume*100),"%",p->{volume=p/100f;publish();});
-        label(output,"This sets the app’s level. Your phone’s volume buttons control media volume.",12,muted,false);
+        button(controls,"Stop microphone",v->{if(MicService.running)startService(new Intent(this,MicService.class).setAction("STOP"));showPage(false);});
 
-        creatorCard();
-        content=settingsPage;
-        LinearLayout eq=section("SHAPE YOUR SOUND");
-        label(eq,"Equalizer",22,Color.WHITE,true);
-        label(eq,"Vocal preset: less rumble and muddiness, gentle voice presence. A starting point you can adjust for your voice and speaker.",13,muted,false);
+        LinearLayout eq=section("VOCAL EQUALIZER");
+        label(eq,"A little less rumble. A little more clarity.",13,muted,false);
         String[] names={"100 Hz · Low","400 Hz · Warmth","1 kHz · Voice","4 kHz · Presence","10 kHz · Air"};
-        for(int i=0;i<5;i++) {final int index=i; slider(eq,names[i],24,Math.round(bands[i])+12,"dB",p->{bands[index]=p-12;publish();});}
-        LinearLayout effects=section("ADD SOME ATMOSPHERE");
+        for(int i=0;i<5;i++) {final int index=i;slider(eq,names[i],24,Math.round(bands[i])+12,"dB",p->{bands[index]=p-12;publish();});}
+        LinearLayout effects=section("VOICE EFFECTS");
+        label(effects,"Creative effects for your voice. Leave echo off for clearer speech near a speaker.",12,muted,false);
         slider(effects,"Bass boost",12,Math.round(bass),"dB+",p->{bass=p;publish();});
-        slider(effects,"Echo",65,Math.round(echo*100),"%",p->{echo=p/100f;publish();});
-        slider(effects,"Echo delay",520,delay-80,"ms",p->{delay=p+80;publish();});
-        button(effects,"Apply vocal preset",v->{int[] values={25,6,9,12,13,10,0,0,140}; for(int i=0;i<sliders.size();i++)sliders.get(i).setProgress(values[i]);protectionSwitch.setChecked(true);});
-        label(content,"Bluetooth adds a delay between speaking and playback. The amount depends on your phone and speaker. Audio stays on your devices; nothing is recorded or uploaded.",13,muted,false);
-        button(content,"Open-source audio library",v-> {
-            try(java.io.InputStream input=getAssets().open("SpeexDSP-LICENSE.txt")) {
-                java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();byte[] buffer=new byte[2048];int n;
-                while((n=input.read(buffer))!=-1)bytes.write(buffer,0,n);
-                new AlertDialog.Builder(this).setTitle("SpeexDSP 1.2.1 · Xiph.Org").setMessage(bytes.toString("UTF-8")).setPositiveButton("Close",null).show();
-            } catch(java.io.IOException e){Toast.makeText(this,"License could not be opened",Toast.LENGTH_SHORT).show();}
-        });
+        slider(effects,"Echo effect",65,Math.round(echo*100),"%",p->{echo=p/100f;publish();});
+        slider(effects,"Effect repeat delay",520,delay-80,"ms",p->{delay=p+80;publish();});
+        button(effects,"Reset to vocal preset",v->{int[] values={25,6,9,12,13,10,0,0,140};for(int i=0;i<sliders.size();i++)sliders.get(i).setProgress(values[i]);protectionSwitch.setChecked(true);});
+        label(content,"Audio stays on your devices. Nothing is recorded or uploaded. Bluetooth delay and speaker feedback depend on your setup.",12,muted,false);
+        creatorCard();
         audio.registerAudioDeviceCallback(callback,handler);
         refreshDevices();
         showPage(saved!=null && saved.getBoolean("settingsPage",false));
@@ -158,12 +149,36 @@ public final class MainActivity extends Activity {
         button(box,"GitHub · ridhwansalim ↗",v->openProfile("https://github.com/ridhwansalim"));
         button(box,"Instagram · ridhwan_salim ↗",v->openProfile("https://www.instagram.com/ridhwan_salim/"));
         button(box,"LinkedIn · Ridhwan S. ↗",v->openProfile("https://www.linkedin.com/in/ridhwan-s/"));
-        box.setOnClickListener(v->{
-            ImageView photo=new ImageView(this);photo.setImageResource(R.drawable.creator_portrait);photo.setAdjustViewBounds(true);
-            ScrollView photoScroll=new ScrollView(this);photoScroll.addView(photo);
-            new AlertDialog.Builder(this).setTitle(getString(R.string.creator_name)).setView(photoScroll).setPositiveButton("Close",null).show();
-        });
-        box.setContentDescription("About the creator. Tap to view photo.");
+        portrait.setOnClickListener(v->showCreator());
+        portrait.setFocusable(true);
+    }
+    private void showCreator() {
+        ScrollView scroll=new ScrollView(this);
+        LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(24),dp(12),dp(24),dp(24));scroll.addView(body);
+        ImageView photo=new ImageView(this);photo.setImageResource(R.drawable.creator_portrait);photo.setScaleType(ImageView.ScaleType.CENTER_CROP);photo.setContentDescription(getString(R.string.creator_portrait_description));
+        photo.setBackground(surface(card,24));photo.setClipToOutline(true);body.addView(photo,new LinearLayout.LayoutParams(-1,dp(240)));
+        label(body,"Designed & built by "+getString(R.string.creator_name),20,Color.WHITE,true);
+        label(body,"The person behind Phone Mic.",14,muted,false);
+        button(body,"GitHub ↗",v->openProfile("https://github.com/ridhwansalim"));
+        button(body,"Instagram ↗",v->openProfile("https://www.instagram.com/ridhwan_salim/"));
+        button(body,"LinkedIn ↗",v->openProfile("https://www.linkedin.com/in/ridhwan-s/"));
+        new AlertDialog.Builder(this).setTitle("Meet the creator").setView(scroll).setPositiveButton("Close",null).show();
+    }
+    private GradientDrawable surface(int color,int radius) {
+        GradientDrawable drawable=new GradientDrawable();drawable.setColor(color);drawable.setCornerRadius(dp(radius));return drawable;
+    }
+    private android.graphics.drawable.Drawable selectableBackground() {
+        android.util.TypedValue value=new android.util.TypedValue();getTheme().resolveAttribute(android.R.attr.selectableItemBackground,value,true);return getDrawable(value.resourceId);
+    }
+    private void toolbar(boolean settings) {
+        LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);content.addView(bar);
+        if(settings)iconButton(bar,R.drawable.ic_back,"Back to microphone",v->showPage(false));
+        TextView title=new TextView(this);title.setText(settings?"Settings":"Phone Mic");title.setTextColor(Color.WHITE);title.setTextSize(26);title.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        bar.addView(title,new LinearLayout.LayoutParams(0,dp(56),1));title.setGravity(Gravity.CENTER_VERTICAL);
+        if(!settings)iconButton(bar,R.drawable.ic_settings,"Open settings",v->showPage(true));
+    }
+    private void iconButton(LinearLayout parent,int icon,String description,View.OnClickListener listener) {
+        ImageButton b=new ImageButton(this);b.setImageResource(icon);b.setContentDescription(description);b.setBackground(selectableBackground());b.setOnClickListener(listener);parent.addView(b,new LinearLayout.LayoutParams(dp(48),dp(48)));
     }
     private void openProfile(String url) {
         try {startActivity(new Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));}
@@ -188,14 +203,10 @@ public final class MainActivity extends Activity {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},11); return;
         }
         int id=outputs.get(devices.getSelectedItemPosition()).getId();
-        if(speakerCancellation) {
-            new AlertDialog.Builder(this).setTitle("Calibrate speaker echo")
-                .setMessage("Set the speaker to a low, comfortable volume. Keep quiet for about 8–12 seconds while a soft test sound plays. Microphone playback begins automatically after calibration succeeds.\n\nKeep the phone and speaker in their intended positions. Stop and recalibrate after a significant move or volume change.")
-                .setPositiveButton("Calibrate and go live",(d,w)->begin(id,true)).setNegativeButton("Cancel",null).show();
-        } else begin(id,false);
+        begin(id);
     }
-    private void begin(int id,boolean cancelSpeaker) {
-        try {startForegroundService(new Intent(this,MicService.class).putExtra("device",id).putExtra("speakerCancellation",cancelSpeaker));}
+    private void begin(int id) {
+        try {startForegroundService(new Intent(this,MicService.class).putExtra("device",id));}
         catch(Exception e) {MicService.status="Could not start microphone: "+e.getMessage();}
     }
     @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] results) {
@@ -219,10 +230,12 @@ public final class MainActivity extends Activity {
         if(names.isEmpty()) names.add("No Bluetooth speaker connected");
         ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,names); adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         devices.setAdapter(adapter);devices.setSelection(selection);
-        deviceNote.setText(outputs.isEmpty()?"Pair and connect a speaker for media audio, then return here.":"Choose a connected media audio device. Stop the microphone before switching.");
+        deviceNote.setText(outputs.isEmpty()?"Pair a speaker, then return here.":"Use your phone’s volume keys for speaker volume.");
     }
     private void load() {
-        speakerCancellation=MicService.running?MicService.speakerMode:getPreferences(0).getBoolean("speakerCancellation",true);
+        // Retired preferences must not re-enable calibration after an upgrade.
+        getPreferences(0).edit().remove("speakerCancellation").remove("calibrationGainDb")
+            .remove("calibrationOffsetMs").remove("extendedCalibration").apply();
         if(MicService.running) {AudioSettings s=MicService.settings; volume=s.volume;bass=s.bass;echo=s.echo;delay=s.delayMs;protection=s.protection;holdToTalk=s.holdToTalk;resumeAfterInterruption=s.resumeAfterInterruption;System.arraycopy(s.bands,0,bands,0,5);return;}
         android.content.SharedPreferences p=getPreferences(0);
         AudioSettings vocal=AudioSettings.vocal();
@@ -266,11 +279,11 @@ public final class MainActivity extends Activity {
         if(bold)v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);parent.addView(v);return v;
     }
     private Button button(LinearLayout parent,String text,View.OnClickListener listener) {
-        Button b=new Button(this);b.setText(text);b.setAllCaps(false);b.setTextSize(15);b.setOnClickListener(listener);
-        parent.addView(b,new LinearLayout.LayoutParams(-1,dp(54)));return b;
+        Button b=new Button(this);b.setText(text);b.setAllCaps(false);b.setTextSize(14);b.setOnClickListener(listener);b.setTextColor(Color.rgb(224,235,244));b.setBackground(surface(Color.rgb(31,43,57),14));b.setStateListAnimator(null);b.setPadding(dp(16),dp(10),dp(16),dp(10));b.setMinHeight(dp(50));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(8),0,0);parent.addView(b,lp);return b;
     }
     private CheckBox check(LinearLayout parent,String text,boolean checked) {
-        CheckBox box=new CheckBox(this);box.setText(text);box.setTextColor(Color.WHITE);box.setButtonTintList(ColorStateList.valueOf(accent));box.setChecked(checked);parent.addView(box);return box;
+        CheckBox box=new CheckBox(this);box.setText(text);box.setTextColor(Color.WHITE);box.setButtonTintList(ColorStateList.valueOf(accent));box.setChecked(checked);box.setMinHeight(dp(52));parent.addView(box);return box;
     }
     private void showNotificationControls() {
         if(!getSystemService(NotificationManager.class).areNotificationsEnabled()) {

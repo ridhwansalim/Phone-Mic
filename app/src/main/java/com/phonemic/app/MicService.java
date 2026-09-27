@@ -19,7 +19,6 @@ public final class MicService extends Service {
     public static volatile float level;
     public static volatile int selectedOutputId=-1;
     public static volatile boolean paused, talkPressed, feedbackReduced;
-    public static volatile boolean speakerMode, calibrating;
     public static volatile String echoCancellation="Echo cancellation: checked when live";
     public static volatile AudioSettings settings = AudioSettings.vocal();
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -35,7 +34,6 @@ public final class MicService extends Service {
     private MediaSession mediaSession;
     private boolean destroyed;
     private String pendingAlert;
-    private SpeakerEcho softwareEcho;
     private final AudioDeviceCallback devices = new AudioDeviceCallback() {
         @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] removed) {
             for (AudioDeviceInfo d : removed) if (d.getId()==selectedId) end("Speaker disconnected. Reconnect to continue.",true);
@@ -108,7 +106,6 @@ public final class MicService extends Service {
         if (running || worker!=null) return START_NOT_STICKY;
         selectedId=intent.getIntExtra("device",-1);
         selectedOutputId=selectedId;
-        speakerMode=intent.getBooleanExtra("speakerCancellation",false);
         paused=false;talkPressed=false;feedbackReduced=false;status="Connecting to speaker…";
         try {
             Notification notification=liveNotification();
@@ -129,7 +126,6 @@ public final class MicService extends Service {
         if(change==AudioManager.AUDIOFOCUS_LOSS) {
             end("Audio taken by another app. Open Phone Mic to restart.",true);
         } else if(change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT || change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-            if(calibrating) {end("Speaker calibration interrupted. Open Phone Mic to try again.",true);return;}
             session.temporaryLoss(settings.resumeAfterInterruption);
             if(session.get()==SessionState.State.STOPPED) {end("Interrupted. Open Phone Mic to restart.",true);return;}
             active=false;paused=true;talkPressed=false;level=0;
@@ -145,7 +141,6 @@ public final class MicService extends Service {
     private void startWorker() {
         if(destroyed || session.get()!=SessionState.State.LIVE || worker!=null)return;
         routeConfirmed=false;active=true;paused=false;
-        calibrating=speakerMode && (softwareEcho==null || !softwareEcho.ready());
         if(!wakeLock.isHeld())wakeLock.acquire(); // Continuous user-controlled foreground audio; released below.
         worker=new Thread(() -> stream(attributes),"PhoneMic-Audio");worker.start();
         publishStatus("Connecting to speaker…");
@@ -177,12 +172,8 @@ public final class MicService extends Service {
             try {
                 if(AcousticEchoCanceler.isAvailable())canceller=AcousticEchoCanceler.create(recorder.getAudioSessionId());
             } catch(RuntimeException ignored) { /* Some devices advertise an effect they cannot create. */ }
-            boolean effectEnabled=settings.protection && !speakerMode;
+            boolean effectEnabled=settings.protection;
             configureCanceller(canceller,effectEnabled);
-            if(speakerMode) {
-                if(softwareEcho==null)softwareEcho=new SpeakerEcho();else softwareEcho.clearTiming();
-                echoCancellation=softwareEcho.ready()?"Speaker cancellation active":"Calibrating speaker · stay quiet";
-            }
             if(!recorder.setPreferredDevice(input) || !track.setPreferredDevice(output)) throw new IllegalStateException("Android could not select that audio route.");
             // Route changes mute immediately. Never intentionally fall back to the phone speaker.
             final AudioTrack liveTrack=track;
@@ -211,9 +202,8 @@ public final class MicService extends Service {
             if(recorder.getRecordingState()!=AudioRecord.RECORDSTATE_RECORDING) throw new IllegalStateException("Microphone is busy or disabled.");
             track.setVolume(1);
             String liveStatus="Live · " + output.getProductName();
-            main.post(() -> { if(active && !destroyed) publishStatus(calibrating?"Calibrating speaker · stay quiet. A soft test sound will play.":liveStatus); });
+            main.post(() -> { if(active && !destroyed) publishStatus(liveStatus); });
             AudioProcessor processor=new AudioProcessor(rate);
-            int lastProgress=-1;
             while(active) {
                 int read=0;
                 while(active && read<block.length) {
@@ -227,22 +217,9 @@ public final class MicService extends Service {
                     track.setVolume(0); throw new IllegalStateException("Audio route changed. Reconnect and try again.");
                 }
                 AudioSettings snapshot=settings;
-                boolean desiredEffect=snapshot.protection && !speakerMode;
+                boolean desiredEffect=snapshot.protection;
                 if(desiredEffect!=effectEnabled) {effectEnabled=desiredEffect;configureCanceller(canceller,effectEnabled);}
-                boolean processVoice=true;
-                if(speakerMode) {
-                    processVoice=softwareEcho.capture(block);
-                    boolean wasCalibrating=calibrating;
-                    calibrating=!softwareEcho.ready();
-                    if(wasCalibrating && !calibrating) {
-                        echoCancellation="Speaker cancellation active · measured delay "+softwareEcho.delayMs()+" ms";
-                        main.post(()->{if(active && !destroyed)publishStatus(liveStatus+" · speaker cancellation active");});
-                    } else if(calibrating) {
-                        int progress=softwareEcho.progress()/10*10;
-                        if(progress!=lastProgress) {lastProgress=progress;echoCancellation="Calibrating speaker · "+progress+"% · stay quiet";}
-                    }
-                }
-                level=processVoice?processor.process(block,read,snapshot,!snapshot.holdToTalk || talkPressed):0;
+                level=processor.process(block,read,snapshot,!snapshot.holdToTalk || talkPressed);
                 boolean reduced=snapshot.protection && processor.protectionGain()<1;
                 if(reduced!=feedbackReduced) {
                     feedbackReduced=reduced;
@@ -252,7 +229,6 @@ public final class MicService extends Service {
                 while(active && offset<read) {
                     int wrote=track.write(block,offset,read-offset,AudioTrack.WRITE_BLOCKING);
                     if(wrote<=0) throw new IllegalStateException("Speaker playback failed.");
-                    if(speakerMode)softwareEcho.rendered(block,offset,wrote);
                     offset+=wrote;
                 }
             }
@@ -266,7 +242,7 @@ public final class MicService extends Service {
             main.post(() -> {
                 worker=null;routeConfirmed=false;
                 if(wakeLock!=null && wakeLock.isHeld())wakeLock.release();
-                if(destroyed) {closeSoftwareEcho();return;}
+                if(destroyed) return;
                 if(message!=null && session.get()==SessionState.State.LIVE)end(message,true);
                 else if(session.get()==SessionState.State.LIVE)startWorker();
                 else if(session.get()==SessionState.State.STOPPED)stopSelf();
@@ -283,21 +259,19 @@ public final class MicService extends Service {
     }
     private void end(String message,boolean alert) {
         if(destroyed)return;
-        session.stop();active=false;paused=false;calibrating=false;talkPressed=false;status=message;
+        session.stop();active=false;paused=false;talkPressed=false;status=message;
         if(alert)pendingAlert=message;
         if(worker==null)stopSelf();
     }
     @Override public void onDestroy() {
-        destroyed=true;session.stop();active=false; running=false;paused=false;calibrating=false;talkPressed=false;level=0;
+        destroyed=true;session.stop();active=false; running=false;paused=false;talkPressed=false;level=0;
         manager.unregisterAudioDeviceCallback(devices);
         if(focus!=null) manager.abandonAudioFocusRequest(focus);
         if(wakeLock!=null && wakeLock.isHeld()) wakeLock.release();
         stopForeground(STOP_FOREGROUND_REMOVE);
         mediaSession.setActive(false);mediaSession.release();
         if(pendingAlert!=null)showAlert(pendingAlert);
-        if(worker==null)closeSoftwareEcho();
         super.onDestroy();
     }
-    private void closeSoftwareEcho() {if(softwareEcho!=null){softwareEcho.close();softwareEcho=null;}}
     @Override public IBinder onBind(Intent intent) {return null;}
 }

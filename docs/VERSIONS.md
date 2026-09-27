@@ -11,7 +11,8 @@ This repository begins with the current v1.3.1 source. Development before this i
 | 1.2.2 | [APK](../dist/PhoneMic-v1.2.2-debug.apk) | Longer calibration and delay-aligned validation window. |
 | 1.3 | [APK](../dist/PhoneMic-v1.3-debug.apk) | Separate Home and Settings, creator portrait. |
 | 1.3.1 | [APK](../dist/PhoneMic-v1.3.1-debug.apk) | Ridhwan S. credit and GitHub, Instagram and LinkedIn links. |
+| 1.4 | [APK](../dist/PhoneMic-v1.4-debug.apk) | Revised build 9: approved compact UI and creator modal; unsuccessful calibration removed, direct microphone startup. |
 
 All available APKs are debug-signed test builds. Android may require uninstalling before installing an older version; uninstalling clears app settings. APK checksums are listed in [SHA256SUMS.txt](../dist/SHA256SUMS.txt).
 
-Nearby-speaker cancellation remains experimental: calibration previously failed on the Redmi Note 13 5G / boAt Aavante Bar 480 setup. Synthetic tests pass, but physical-device success after the calibration fix is unconfirmed.
+Speaker calibration was removed in revised v1.4 build 9 after repeated physical-device failures. Earlier APKs may still contain it. Nearby-speaker feedback and Bluetooth latency remain possible.

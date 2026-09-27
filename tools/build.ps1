@@ -23,4 +23,4 @@ if ($Lint) { $tasks += 'lintDebug' }
 if ($LASTEXITCODE -ne 0) { throw 'Android build failed' }
 New-Item -ItemType Directory -Force "$projectRoot\dist" | Out-Null
 Copy-Item -LiteralPath "$projectRoot\app\build\outputs\apk\debug\app-debug.apk" -Destination "$projectRoot\dist\PhoneMic-debug.apk"
-Copy-Item -LiteralPath "$projectRoot\app\build\outputs\apk\debug\app-debug.apk" -Destination "$projectRoot\dist\PhoneMic-v1.3.1-debug.apk"
+Copy-Item -LiteralPath "$projectRoot\app\build\outputs\apk\debug\app-debug.apk" -Destination "$projectRoot\dist\PhoneMic-v1.4-debug.apk"

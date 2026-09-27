@@ -4,7 +4,7 @@ import java.util.*;
 
 public final class SpeakerEchoTest {
     public static void main(String[] args) throws Exception {
-        delayEstimation();nativeCancellation();fullPipeline(14400);fullPipeline(45408);failedCalibration();
+        delayEstimation();nativeCancellation();fullPipeline(14400);fullPipeline(45408);fullPipeline(35376,3,-10,true);probeSettings();failedCalibration();rejectedCalibration(false);rejectedCalibration(true);
         System.out.println("PASS: delay estimation, reference cancellation, double talk, silence and full calibration pipeline");
     }
     private static void delayEstimation() {
@@ -50,10 +50,13 @@ public final class SpeakerEchoTest {
         }
     }
     private static void fullPipeline(int simulatedDelay) throws Exception {
+        fullPipeline(simulatedDelay,0,0,false);
+    }
+    private static void fullPipeline(int simulatedDelay,int gain,int offset,boolean extended) throws Exception {
         short[] played=new short[262144],frame=new short[480];long cursor=0;Random random=new Random(10);
         double before=0,after=0;boolean learned=false;int liveFrames=0;
-        try(SpeakerEcho echo=new SpeakerEcho()) {
-            for(int n=0;n<1700;n++) {
+        try(SpeakerEcho echo=new SpeakerEcho(gain,offset,extended)) {
+            for(int n=0;n<2200;n++) {
                 for(int i=0;i<480;i++) {
                     long index=cursor+i-simulatedDelay;
                     frame[i]=index>=0?(short)(played[(int)index & (played.length-1)]*.8):0;
@@ -72,7 +75,7 @@ public final class SpeakerEchoTest {
                 if(!echo.ready() && n>=SpeakerEcho.CALIBRATION_FRAMES)Thread.sleep(5);
             }
             check(learned,"Calibration must complete");
-            check(Math.abs(echo.delayMs()-simulatedDelay/48)<=1,"Reported Bluetooth delay should match simulation");
+            check(Math.abs(echo.delayMs()-(simulatedDelay/48+offset))<=1,"Aligned Bluetooth delay should include selected correction");
             double reduction=10*Math.log10(before/Math.max(1,after));
             System.out.printf(Locale.US,"End-to-end calibrated echo-only reduction: %.1f dB%n",reduction);
             check(reduction>12,"Learned cancellation must suppress the simulated speaker echo");
@@ -107,12 +110,42 @@ public final class SpeakerEchoTest {
             short[] silence=new short[480];
             for(int n=0;n<1800;n++) {
                 Arrays.fill(silence,(short)0);
-                try {echo.capture(silence);}catch(IllegalStateException expected){rejected=true;break;}
+                try {echo.capture(silence);}catch(SpeakerEcho.CalibrationFailure expected){check(!expected.overloaded,"Silence must not be reported as clipping");rejected=true;break;}
                 echo.rendered(silence,0,480);
                 if(n>=450)Thread.sleep(2);
             }
         }
         check(rejected,"A speaker with no detectable return must fail calibration rather than go live");
+    }
+    private static void probeSettings() {
+        try(SpeakerEcho quiet=new SpeakerEcho(-6,0,false);SpeakerEcho loud=new SpeakerEcho(6,0,true)) {
+            short[] a=new short[480],b=new short[480];double lowPower=0,highPower=0;
+            for(int n=0;n<100;n++) {
+                Arrays.fill(a,(short)0);Arrays.fill(b,(short)0);quiet.capture(a);loud.capture(b);
+                for(int i=0;i<a.length;i++){lowPower+=(double)a[i]*a[i];highPower+=(double)b[i]*b[i];check(Math.abs((int)b[i])<7200,"Probe must remain bounded");}
+            }
+            double difference=10*Math.log10(highPower/lowPower);
+            check(Math.abs(difference-12)<.1,"Test-level dB setting must change probe energy");
+        }
+    }
+    private static void rejectedCalibration(boolean clipping) throws Exception {
+        short[] played=new short[131072],frame=new short[480];long cursor=0;boolean rejected=false;
+        // A +80 ms correction puts the reference too late to cancel this clear linear echo.
+        try(SpeakerEcho echo=new SpeakerEcho(0,clipping?0:80,false)) {
+            for(int n=0;n<1800;n++) {
+                for(int i=0;i<480;i++){long index=cursor+i-35376;frame[i]=clipping?(short)32767:index>=0?(short)(played[(int)index & (played.length-1)]*.8):0;}
+                try {echo.capture(frame);}catch(SpeakerEcho.CalibrationFailure failure){
+                    check(failure.overloaded==clipping,"Retry must distinguish clipping from insufficient cancellation");
+                    check(!echo.ready(),"Rejected calibration must never enable live cancellation");
+                    if(!clipping)check(failure.getMessage().contains("cancellation was insufficient"),"Clear echo with incorrect alignment must fail residual validation");
+                    rejected=true;break;
+                }
+                for(int i=0;i<480;i++)played[(int)(cursor+i)&(played.length-1)]=frame[i];
+                echo.rendered(frame,0,480);cursor+=480;
+                if(n>=SpeakerEcho.CALIBRATION_FRAMES)Thread.sleep(5);
+            }
+        }
+        check(rejected,"Clipping or ineffective delay correction must fail calibration");
     }
     private static void check(boolean condition,String message){if(!condition)throw new AssertionError(message);}
 }
