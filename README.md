@@ -1,61 +1,152 @@
+<div align="center">
+
 # Phone Mic
 
-Turn an Android phone into a live microphone for a connected Bluetooth speaker.
+### Your phone. Your voice. Your speaker.
 
-Built by **[Ridhwan S.](https://github.com/ridhwansalim)** · [Instagram](https://www.instagram.com/ridhwan_salim/) · [LinkedIn](https://www.linkedin.com/in/ridhwan-s/)
+Turn your Android phone into a live microphone for a Bluetooth speaker.<br>
+Connect, choose your sound, and start speaking.
 
-**Current version: 1.4 (build 9).** This revision removes the unsuccessful speaker-calibration feature. Start microphone now connects directly to the selected speaker after permissions and routing checks. The approved Home/Settings design remains.
+[![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square)](#get-started)
+[![Version 1.4](https://img.shields.io/badge/Version-1.4-71E6C1?style=flat-square)](https://github.com/ridhwansalim/Phone-Mic/releases/tag/v1.4)
+[![Status: pre-release](https://img.shields.io/badge/Status-Pre--release-F0B85A?style=flat-square)](#before-you-use-it)
+[![Audio: on-device](https://img.shields.io/badge/Audio-On--device-8BAAFF?style=flat-square)](#privacy--permissions)
 
-[Download v1.4 APK](dist/PhoneMic-v1.4-debug.apk) · [Version history](docs/VERSIONS.md) · [v1.4 notes](docs/UI_AND_CALIBRATION_1.4.md)
+**[Download APK](https://github.com/ridhwansalim/Phone-Mic/releases/download/v1.4/PhoneMic-v1.4-debug.apk)** &nbsp; · &nbsp; **[All releases](https://github.com/ridhwansalim/Phone-Mic/releases)** &nbsp; · &nbsp; **[Report an issue](https://github.com/ridhwansalim/Phone-Mic/issues)**
 
-## Features
+Designed and built by **[Ridhwan S.](https://github.com/ridhwansalim)**
 
-- Built-in phone microphone to Bluetooth media audio (A2DP and supported BLE outputs).
-- Start/Stop, input meter, output selection and volume on Home.
-- Settings gear for vocal EQ, bass, creative echo/repeat delay, feedback protection and hold-to-talk.
-- Conservative vocal preset: 100 Hz -6 dB, 400 Hz -3 dB, 1 kHz 0 dB, 4 kHz +1 dB, 10 kHz -2 dB; output 25%, bass/echo off.
-- High-pass filter, noise gate and sustained-tone detection with automatic output reduction. Optional Android platform AEC when supported, with no calibration requirement.
-- Foreground media notification, Stop action, notification restoration and disconnect alerts.
-- Temporary audio-focus interruptions pause playback; optional resume when focus returns. Stop cancels pending resume.
-- Creator modal from the Home footer, full creator card at the bottom of Settings.
-- Local audio processing. No network permission, account, audio recording files or uploads.
+</div>
 
-## Use
+---
 
-1. Install the v1.4 APK over the existing app. The version label remains 1.4; build 9 replaces the earlier build 8 without requiring an uninstall.
-2. Pair/connect a Bluetooth speaker for media audio in Android settings. The Home **Pair** shortcut opens those settings.
-3. Select the output, tap **Start microphone** and allow microphone/nearby-device permissions. Allow notifications for background controls.
-4. Start with low speaker volume. Speak near the phone and point the speaker away from its microphone. Phone volume keys control media volume; the app slider controls its output level.
-5. Use the gear to adjust sound or enable hold-to-talk. Stop before switching outputs.
+## A microphone, using what you already have
 
-Bluetooth adds playback latency. Nearby speakers can still feed back; protection does not guarantee feedback-free use. Hold-to-talk mutes on release or leaving the app, but already-buffered Bluetooth audio may continue briefly. Only outputs exposed by Android appear in the picker, and actual routing is verified before capture and during playback.
+Phone Mic sends audio from your phone’s **built-in microphone** to a connected Bluetooth media speaker. The Home screen keeps the essentials within reach: your speaker, microphone controls, input meter and output volume. Open the settings gear when you want to shape your sound.
 
-## Calibration removed
+No account. No audio uploads. No calibration step.
 
-The user repeatedly reported failed speaker calibration on a Redmi Note 13 5G running Android 15 with a boAt Aavante Bar 480. Longer probes and manual adjustments did not establish useful cancellation. Current v1.4 removes the entire calibration path, controls and native library from the APK. Retired code, tests and licenses remain under [experiments/speaker-echo](experiments/speaker-echo/README.md) for reference. The ordinary creative echo effect remains available and is separate from speaker cancellation.
+## What you can do
 
-This is a debug-signed testing APK. Earlier APKs remain in `dist` with [SHA-256 checksums](dist/SHA256SUMS.txt). Downgrading can require uninstalling, which clears settings. Historical releases before the Git import preserve binaries, not their original source snapshots.
+- **Go live with a tap.** Select your connected speaker and start or stop microphone playback from Home.
+- **Shape your voice.** Adjust a five-band equalizer, bass boost and creative echo, or use the vocal preset as a starting point.
+- **Control your output.** Set the app’s output level and use your phone’s volume keys for media volume.
+- **Use hold-to-talk.** Keep the mic muted between phrases; releasing the button or leaving the app mutes software output.
+- **Reduce feedback risk.** Enable rumble filtering, a noise gate and automatic output reduction when a sustained feedback tone is detected.
+- **Keep controls nearby.** Stop from the foreground notification, receive disconnect alerts, and optionally resume after temporary audio interruptions when Android returns audio focus.
 
-## Build and tests
+Settings are saved between sessions. Audio is processed locally on your phone.
 
-Use Android Studio or JDK 17, Android SDK 35 and the included Gradle 8.11.1 wrapper; Android Gradle Plugin 8.9.2. The current app no longer needs NDK/CMake.
+## Get started
 
-```sh
+You need an **Android 8.0 or newer phone** and a **Bluetooth speaker connected for media audio**.
+
+1. **[Download the v1.4 APK](https://github.com/ridhwansalim/Phone-Mic/releases/download/v1.4/PhoneMic-v1.4-debug.apk)** and open it on your phone. If Android asks, allow installation from the browser or file manager you used.
+2. **Pair your speaker** in Android Bluetooth settings. The app’s **Pair** shortcut takes you there.
+3. **Select the speaker** in Phone Mic and tap **Start microphone**. Allow microphone and nearby-device access when prompted; allow notifications for background controls.
+4. **Start at low volume.** Speak close to the phone and point the speaker away from its microphone.
+5. **Fine-tune in Settings.** Try the vocal preset, adjust your output level, or enable hold-to-talk. Stop the mic before switching speakers.
+
+The download is **v1.4, build 9**, a debug-signed pre-release. It can update the earlier v1.4 build 8 without uninstalling. [Checksums](dist/SHA256SUMS.txt) are available for every archived APK.
+
+## Before you use it
+
+**Bluetooth introduces a delay.** The amount depends on the phone, speaker and audio route. Phone Mic does not provide zero-latency monitoring or replace a dedicated wireless microphone for timing-sensitive performances.
+
+**A nearby speaker can still feed back.** Keep echo effects off for clear speech, start with low output, and leave space between the phone and speaker. Feedback protection reduces risk; it cannot guarantee complete cancellation. If you hear howling, stop playback and lower the speaker volume.
+
+**Device behavior varies.** Android decides which Bluetooth outputs are available to the app. Background playback, notification behavior and call recovery can differ across devices. Audio already buffered by Bluetooth may play briefly after software mute.
+
+## Privacy & permissions
+
+Phone Mic does not request internet access, save audio recordings or upload microphone audio. Creator profile links open externally in your browser or another app.
+
+- **Microphone:** captures the voice you want to amplify.
+- **Nearby devices:** accesses connected Bluetooth devices on supported Android versions.
+- **Notifications:** provides playback controls and interruption alerts.
+- **Foreground service and wake lock:** support an active microphone session while the screen is off.
+
+## What changed in v1.4?
+
+The interface now has a compact Home screen, a settings gear, and a creator profile modal accessible from the footer.
+
+The experimental speaker-calibration feature was removed after repeated unsuccessful device tests. Microphone playback now starts directly after permission and routing checks. EQ, voice effects, feedback protection and hold-to-talk remain available.
+
+[Read the v1.4 notes](docs/UI_AND_CALIBRATION_1.4.md) · [Explore the version history](docs/VERSIONS.md)
+
+<details>
+<summary><strong>Looking for an older version?</strong></summary>
+
+Eight APK versions, from v1.0 through v1.4, are preserved in [GitHub Releases](https://github.com/ridhwansalim/Phone-Mic/releases) and the [dist directory](dist). Older releases may contain features that were later removed.
+
+Historical `archive/` tags preserve APKs; they do not contain the original source snapshots for those old builds. The repository’s source history begins with the v1.3.1 import. Downgrading may require uninstalling the app, which clears its settings.
+
+</details>
+
+## Build from source
+
+The app uses **native Android views and Java**, with no web runtime.
+
+Requirements: **JDK 17**, **Android SDK 35**, and an Android Studio installation or configured SDK path. The included wrapper uses Gradle 8.11.1 with Android Gradle Plugin 8.9.2. The current app does not require NDK or CMake.
+
+```bash
+git clone https://github.com/ridhwansalim/Phone-Mic.git
+cd Phone-Mic
+```
+
+Open the project in Android Studio and let Gradle sync, or set `ANDROID_HOME` to your SDK location and build from the terminal:
+
+```bash
+# macOS / Linux
 ./gradlew assembleDebug lintDebug
 ```
 
-For this workspace's local toolchain:
-
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/build.ps1 -Lint
+# Windows
+.\gradlew.bat assembleDebug lintDebug
 ```
 
-The script runs DSP and interruption-state tests, builds the app, runs optional lint and copies the APK to `dist`. Toolchain/cache files live in ignored `.tooling/`. SDK installation scripts accept SDK license terms; review the terms before using them in another environment.
+The APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Architecture
+<details>
+<summary><strong>Development scripts and validation</strong></summary>
 
-MainActivity provides native views, permissions and persisted immutable AudioSettings snapshots. MicService owns foreground execution, wake lock, audio focus, MediaSession, routing and audio resources. SessionState tracks interruption/resume intent independently of worker shutdown. AudioRecord captures built-in-microphone mono 48 kHz PCM16; AudioProcessor applies protection, five EQ bands, bass, optional creative echo, smoothed gain and limiter; AudioTrack plays media audio to the verified Bluetooth output.
+[tools/build.ps1](tools/build.ps1) supports the maintainer’s workspace-local toolchain under `.tooling/`. It runs the standalone DSP and session-state tests, builds the APK, optionally runs lint with `-Lint`, and copies the result into `dist`. That ignored toolchain is not included in a fresh clone; use Android Studio or the Gradle wrapper for a standard setup.
 
-FeedbackGuard detects sustained narrow-band tones using a 2048-sample FFT. Output reduction stays latched until restart. Quiet speech can be affected by the noise gate. Android platform echo-cancellation availability does not establish its effectiveness on a Bluetooth route.
+The [tests](tests) cover EQ, bass, echo timing, mute, feedback protection, hold-to-talk and interruption/Stop behavior. Build, lint and those tests passed for v1.4 build 9. They do not replace physical-device testing: audio quality, call recovery, notifications and longer sessions need checks on real hardware. See the [device test checklist](docs/DEVICE_TESTS.md).
 
-DSP and session-state tests cover mute, EQ/bass, echo timing, limits, feedback protection, hold-to-talk and interruption/Stop behavior. Physical audio quality, manufacturer-specific calls/notifications, long sessions and two-speaker switching still require device testing. See [device checks](docs/DEVICE_TESTS.md).
+The retired cancellation implementation, its tests and third-party notices are preserved in [experiments/speaker-echo](experiments/speaker-echo/README.md). They are excluded from the current Android app.
+
+</details>
+
+## How the audio flows
+
+```mermaid
+flowchart LR
+    A[Phone microphone] --> B[Feedback protection]
+    B --> C[EQ, effects and output level]
+    C --> D[Bluetooth speaker]
+```
+
+`MainActivity` handles the interface and saved settings. `MicService` owns microphone capture, playback, audio focus, notifications and route monitoring. `AudioProcessor` shapes the audio; `SessionState` manages interruption and resume behavior. The selected Bluetooth route is checked before capture and throughout playback.
+
+## Feedback & contributions
+
+Found a bug or have an idea? [Open an issue](https://github.com/ridhwansalim/Phone-Mic/issues) with your phone model, Android version, speaker model, app version and steps to reproduce it. For audio problems, include your volume/effect settings and whether the issue happens with hold-to-talk enabled.
+
+Bug fixes, clearer documentation and device-test results are welcome. For a substantial feature, start with an issue so its behavior and scope can be discussed first.
+
+---
+
+<div align="center">
+
+### Meet the creator
+
+<img src="app/src/main/res/drawable-nodpi/creator_portrait.jpg" width="112" alt="Ridhwan S., creator of Phone Mic">
+
+**Ridhwan S.**<br>
+Designed and built Phone Mic.
+
+[GitHub](https://github.com/ridhwansalim) &nbsp; · &nbsp; [Instagram](https://www.instagram.com/ridhwan_salim/) &nbsp; · &nbsp; [LinkedIn](https://www.linkedin.com/in/ridhwan-s/)
+
+</div>
