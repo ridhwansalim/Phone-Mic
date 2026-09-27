@@ -1,0 +1,14 @@
+.tooling/
+.gradle/
+**/build/
+local.properties
+*.jks
+.idea/
+.cxx/
+**/.cxx/
+*.keystore
+.env
+.env.*
+*.log
+# Keep versioned APK archives; the unversioned build is a duplicate.
+dist/PhoneMic-debug.apk

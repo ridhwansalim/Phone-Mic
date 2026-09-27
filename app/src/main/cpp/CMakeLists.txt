@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(phonemic_echo C)
+set(SPEEX speexdsp/libspeexdsp)
+add_library(phonemic_echo SHARED echo_jni.c ${SPEEX}/mdf.c ${SPEEX}/preprocess.c
+    ${SPEEX}/fftwrap.c ${SPEEX}/filterbank.c ${SPEEX}/kiss_fft.c ${SPEEX}/kiss_fftr.c)
+target_include_directories(phonemic_echo PRIVATE . speexdsp/include ${SPEEX})
+target_compile_definitions(phonemic_echo PRIVATE HAVE_CONFIG_H)
+target_compile_options(phonemic_echo PRIVATE -O3 -fvisibility=hidden)
+target_link_options(phonemic_echo PRIVATE -Wl,-z,max-page-size=16384)
+target_link_libraries(phonemic_echo m)
