@@ -4,7 +4,7 @@ This repository begins with the current v1.3.1 source. Development before this i
 
 | Version | Saved build | Changes |
 | --- | --- | --- |
-| 1.0 | Unavailable | Initial microphone-to-Bluetooth playback, device selection and effects. |
+| 1.0 | [APK](../dist/PhoneMic-v1.0-debug.apk) | First-ever version: microphone-to-Bluetooth playback, device selection and effects. |
 | 1.1 | [APK](../dist/PhoneMic-v1.1-debug.apk) | Vocal preset, feedback protection, hold-to-talk, notification and interruption handling. |
 | 1.2 | [APK](../dist/PhoneMic-v1.2-debug.apk) | Experimental SpeexDSP speaker-reference cancellation and calibration. |
 | 1.2.1 | [APK](../dist/PhoneMic-v1.2.1-debug.apk) | Stronger calibration probe, delay validation and diagnostic messages. |

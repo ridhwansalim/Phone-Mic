@@ -6,7 +6,7 @@ Built by **[Ridhwan S.](https://github.com/ridhwansalim)** · [Instagram](https:
 
 [Download current APK](dist/PhoneMic-v1.3.1-debug.apk) · [All versions and history](docs/VERSIONS.md)
 
-The repository contains current source plus six archived debug APKs. Earlier source history was not saved. Speaker echo cancellation is experimental; the reported physical-speaker calibration failure remains unconfirmed after the v1.2.2 fix. The creator/UI updates do not change the audio engine.
+The repository contains current source plus seven archived debug APKs, including the first-ever v1.0 build. Earlier source history was not saved. Speaker echo cancellation is experimental; the reported physical-speaker calibration failure remains unconfirmed after the v1.2.2 fix. The creator/UI updates do not change the audio engine.
 
 Native Android app that sends the phone's built-in microphone to a connected Bluetooth media speaker. Android 8.0 or later.
 

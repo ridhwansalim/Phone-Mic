@@ -1,3 +1,4 @@
+afc3792fede74afa6d7c7145059e88e851bf65313a54b14baf8dbbeb1b69355c  PhoneMic-v1.0-debug.apk
 73d88dbc01bd36d0981588487d2409918df6af629d5bed09e895aca46542f4d8  PhoneMic-v1.1-debug.apk
 e9da73205f3c5c637c9aa8ad3c96e43394a9f3c8974dcdd745431c2e9aec9c1e  PhoneMic-v1.2.1-debug.apk
 0805f76f73b40bf6eafdb6cc6352c0ac731a3404f6891ac446ac2acc6093aa4f  PhoneMic-v1.2.2-debug.apk
